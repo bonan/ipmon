@@ -1,0 +1,27 @@
+---
+builds:
+  - binary: "ipmond"
+    main: "./cmd/ipmond"
+    mod_timestamp: '{{ .CommitTimestamp }}'
+    flags:
+      - "-trimpath"
+    ldflags:
+      - "-s"
+      - "-w"
+      - "-X main.version={{.Version}}"
+      - "-X main.commit={{.FullCommit}}"
+      - "-X main.date={{.CommitDate}}"
+    goos:
+      - "linux"
+    goarch:
+      - "amd64"
+      - "arm64"
+      - "arm"
+    goarm:
+      - "7"
+    env:
+      - "CGO_ENABLED=0"
+archives:
+  - format: "binary"
+    builds:
+      - "ipmond"
