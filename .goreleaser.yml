@@ -1,6 +1,7 @@
 ---
 builds:
-  - binary: "ipmond"
+  - id: "ipmond"
+    binary: "ipmond"
     main: "./cmd/ipmond"
     mod_timestamp: '{{ .CommitTimestamp }}'
     flags:
@@ -22,6 +23,7 @@ builds:
     env:
       - "CGO_ENABLED=0"
 archives:
-  - format: "binary"
+  - id: "ipmond"
+    format: "binary"
     builds:
       - "ipmond"
