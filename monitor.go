@@ -20,6 +20,7 @@ type Address struct {
 	N       netlink.Addr `json:"-"`
 	Address string       `json:"address,omitempty"`
 	CIDR    int          `json:"mask,omitempty"`
+	TTL     int          `json:"ttl,omitempty"`
 }
 
 type Route struct {
@@ -79,8 +80,8 @@ func (u *Update) MarshalEnv() (env []string) {
 				continue
 			}
 			if ip.To4() != nil {
-				if a.N.ValidLft > 0 {
-					env = append(env, fmt.Sprintf("IPMON_IPV4_TTL_%s=%d", n, a.N.ValidLft))
+				if a.TTL > 0 {
+					env = append(env, fmt.Sprintf("IPMON_IPV4_TTL_%s=%d", n, a.TTL))
 				}
 				env = append(env, fmt.Sprintf("IPMON_IPV4_%s=%s", n, a.Address))
 				env = append(env, fmt.Sprintf("IPMON_IPV4_MASK_%s=%d", n, a.CIDR))
@@ -88,8 +89,8 @@ func (u *Update) MarshalEnv() (env []string) {
 				if ip.IsPrivate() {
 					continue
 				}
-				if a.N.ValidLft > 0 {
-					env = append(env, fmt.Sprintf("IPMON_IPV6_TTL_%s=%d", n, a.N.ValidLft))
+				if a.TTL > 0 {
+					env = append(env, fmt.Sprintf("IPMON_IPV6_TTL_%s=%d", n, a.TTL))
 				}
 				env = append(env, fmt.Sprintf("IPMON_IPV6_%s=%s", n, a.Address))
 				env = append(env, fmt.Sprintf("IPMON_IPV6_MASK_%s=%d", n, a.CIDR))
@@ -160,15 +161,16 @@ func Monitor(ctx context.Context, interval int, fn func(*Update)) error {
 	addrUpd := make(chan netlink.AddrUpdate, 1)
 	routeUpd := make(chan netlink.RouteUpdate, 1)
 	linkUpd := make(chan netlink.LinkUpdate, 1)
-	neighUpd := make(chan netlink.NeighUpdate, 1)
+	//neighUpd := make(chan netlink.NeighUpdate, 1)
 
 	defer close(done)
 
+	/* TODO
 	if err := netlink.NeighSubscribeWithOptions(neighUpd, done, netlink.NeighSubscribeOptions{
 		ListExisting: true,
 	}); err != nil {
 		return err
-	}
+	}*/
 	if err := netlink.AddrSubscribe(addrUpd, done); err != nil {
 		return err
 	}
@@ -264,6 +266,7 @@ func genUpdate(last *Update) *Update {
 			inf.Addr = append(inf.Addr, &Address{
 				Address: addr.IP.String(),
 				CIDR:    cidr,
+				TTL:     addr.ValidLft,
 				N:       addr,
 			})
 		}
@@ -314,6 +317,7 @@ func (u *Update) addrUpdate(a netlink.AddrUpdate) bool {
 	u.Address = &Address{
 		Address: a.LinkAddress.IP.String(),
 		CIDR:    cidr,
+		TTL:     a.ValidLft,
 	}
 	lnk, _ := netlink.LinkByIndex(a.LinkIndex)
 	if lnk != nil && lnk.Attrs() != nil {
